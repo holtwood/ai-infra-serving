@@ -13,3 +13,14 @@ repetitive 55.7 / code 58.5 / prose 58.5 tok/s vs baseline
 greedy/短 ctx 请求有隐式跳过路径（待读 ngram_proposer.py）；
 ② prompt_lookup_min=1 与 max=4 的窗口在该版本有 edge case。
 可重试：temperature=0.7 + 更长上下文。
+
+## 根因定位（源码实锤）
+
+ngram_proposer.batch_propose 收到 `spec_decode_unsupported_reqs`
+集合——请求采样参数不兼容 spec 时被跳过。0.11.0 默认继承模型
+generation_config（Qwen2.5-7B 带 repetition_penalty:1.05）→
+全部请求进 unsupported 集合 → draft=0。**与此前 spec-decode
+issue 调查同一条路径回旋镖命中。**
+验证方法（下次）：`--generation-config vllm` 重启使请求不带
+rep_pen → draft 应非零；或请求级传 repetition_penalty=1.0。
+附注：8192 阈值只是 numba 线程启发式，非根因。
