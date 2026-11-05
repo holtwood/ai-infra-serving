@@ -51,3 +51,28 @@ block table 寻址 → 权重只搬一遍 → 同硬件同模型 32 并发 2762 
 未做：batched/paged attention、prefix caching、KV 物理分页显存、
 chunked prefill、CUDA graph、多进程 engine core 隔离
 → 下一步把 batched forward 补上，预计 TPOT 曲线能变平
+
+## 六、续：batched forward 实测（engine_batched.py，2026-11-05）
+
+把 decode 步改成"全体 running 行一次 forward"（共享 DynamicCache，
+K/V 左 pad 到统一 L + attention_mask + 按行 position_ids），
+其余调度/抢占/准入完全没动——**单一变量实验**：
+
+| 并发 | per-seq TPOT | batched TPOT | per-seq 吞吐 | batched 吞吐 | 提升 |
+|---|---|---|---|---|---|
+| 1 | 13ms | 13ms | 68 | 64 | ~1x |
+| 4 | 51ms | **19ms** | 77 | 196 | 2.6x |
+| 8 | 100ms | **19ms** | 79 | 368 | 4.7x |
+| 16 | 202ms | **20ms** | 79 | 657 | 8.3x |
+| 32 | — | 26ms | — | **973.6** | — |
+
+**结论**：TPOT 曲线被拉平 = decode 瓶颈确实是"权重重复搬运"，
+batch 化后权重一次读取服务全 batch——vLLM 快的核心机制被
+亲手复现。剩余 vs vLLM 差距（973 vs 2762）来自：pad KV 浪费、
+无 CUDA graph（13ms 里 Python/launch 占大头）、逐 seq prefill、
+HF 模型非最优 kernel——正好对应下一次迭代的四个优化点。
+
+**正确性验证**（test_batched_equiv.py）：4 条 prompt 两引擎
+greedy 对比——3 条逐 token IDENTICAL，1 条在第 17 token 分叉
+（bf16 数值差异，pad 位参与计算的浮点序不同）——顺带实测了
+"batch-invariance 为什么难"这个热门话题。
