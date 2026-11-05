@@ -85,3 +85,12 @@ decode 步录图回放：max_len=256 时 13.75→**5.46ms/step（2.5x）**，
 **亲手撞出了 PagedAttention 变长寻址的存在理由**。
 坑见 notes/cuda-graph-engine.md（StaticCache batch 锁定、
 共享 cache_position 逼右对齐、两个 off-by-one）。
+
+## T1 补充：分叉根因判定（2026-11-05 通宵复测）
+
+重跑 test_batched_equiv.py：仍 3/4 identical、r3 diverge@17。
+核查 engine_batched.masks_positions：pos = L-p 是新 token 的
+正确序列 index（新 token 为第 ctx 位，0-indexed=ctx），
+与 engine_graph 的 `li-1` 约定不同（后者 li 含当前 token）——
+batched 引擎无 off-by-one。**判定：r3 分叉确认为 bf16
+batch-invariance**（左 padding 改变浮点累加序，logit 近距翻转）。
