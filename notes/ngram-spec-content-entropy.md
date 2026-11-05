@@ -24,3 +24,13 @@ issue 调查同一条路径回旋镖命中。**
 验证方法（下次）：`--generation-config vllm` 重启使请求不带
 rep_pen → draft 应非零；或请求级传 repetition_penalty=1.0。
 附注：8192 阈值只是 numba 线程启发式，非根因。
+
+## 验证跑（--generation-config vllm）✅ 根因实锤
+
+drafts=1957、draft_tokens=9765（每步 5 提案）、accepted=1606
+→ 平均接受 ~0.82 tok/步（16%）。tok/s：code 55.6/prose 56.1
+≈ baseline 无净加速（低接受率下 spec 开销对冲）；
+repetitive 27.5 为混杂项（输出 134 tok 提前收尾，wall 被
+TTFT 主导）。结论：根因=generation_config rep_pen 1.05（实锤）；
+ngram 在低熵内容上理论增益大，但本 workload 接受率仅 16%，
+**spec-decode 收益高度依赖输出可预测性分布**（原结论成立）。
