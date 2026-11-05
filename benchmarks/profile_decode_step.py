@@ -29,8 +29,9 @@ def main():
 
     torch.cuda.synchronize()
     from torch.profiler import profile, ProfilerActivity
+    N = int(os.environ.get("STEPS", "10"))
     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-        for _ in range(10):              # 抓 10 个 batched decode step
+        for _ in range(N):
             eng.step()
         torch.cuda.synchronize()
 
@@ -39,11 +40,11 @@ def main():
 
     cuda_total = sum(e.self_device_time_total for e in prof.key_averages()) / 1e3
     t0 = time.perf_counter()
-    for _ in range(10):
+    for _ in range(N):
         eng.step()
     torch.cuda.synchronize()
     wall = (time.perf_counter() - t0) * 1000
-    print(f"\n10 steps wall={wall:.1f}ms ({wall/10:.2f}ms/step), "
+    print(f"\n{N} steps wall={wall:.1f}ms ({wall/N:.2f}ms/step), "
           f"GPU busy={cuda_total:.1f}ms, 间隙≈{(1 - cuda_total/wall)*100:.0f}%")
 
 

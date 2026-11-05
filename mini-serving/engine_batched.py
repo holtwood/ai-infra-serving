@@ -15,7 +15,7 @@
     各 seq 实际位置 + attention_mask=[B,L+1] → 一次 forward →
     每行独立 sample。
 """
-import math, time
+import math, os, time
 from collections import deque
 
 import torch
@@ -100,6 +100,10 @@ class EngineCoreBatched:
         self.device = device
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, dtype=torch.bfloat16, device_map=device).eval()
+        if os.environ.get("MINI_COMPILE") == "1":
+            self.model = torch.compile(self.model,
+                                       mode="reduce-overhead",
+                                       dynamic=True)
         eos = self.model.generation_config.eos_token_id
         self.eos_ids = set(eos) if isinstance(eos, (list, tuple)) else {eos}
         self.pool = KVBlockPool(num_kv_blocks)
