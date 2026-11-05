@@ -29,6 +29,11 @@ vLLM 的答案是 block table：KV 进全局物理块池，kernel 按表取块�
 这正是 graph+max_len=2048 变慢的微观证据：那 2048 窗口里
 ~96% 是 padding，全部进了 GEMM/GEMV 的计算量。
 
+> **Caveat（诚实版）**：3.7x 不是纯 "padding 税"——对照里混了三个
+> 变量：序列长度（64 vs 512）、kernel 实现（Triton vs cuDNN
+> SDPA）、gather 开销。方向性结论成立（变长寻址避免白扫），
+> 精确归因需要同 kernel 下的定长对照。面试时按前者讲，别报死数。
+
 ## 与 vLLM 真实实现的差距（诚实版）
 
 - 无 split-K（长 ctx 时单 program 串行扫块，vLLM v2 有 flash-decode

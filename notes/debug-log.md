@@ -96,3 +96,15 @@ P/D demo 本体跑通：producer 把 ~1200tok KV 序列化到
 - sglang==0.5.3.post1 → 硬钉 transformers==4.57.0，该版本已被
   PyPI yanked（setup 出错）→ 无解
 - 结论：本机无法部署，按预案完成 RadixAttention 源码精读笔记
+
+## 2026-11-05 vllm 进程树杀不干净（第二次犯，已写进过本文件）
+- `vllm serve` 有两棵进程树：API 层 `vllm serve` 父进程 +
+  `VLLM::EngineCore` 子进程。只杀 API 父进程 → EngineCore 成孤儿
+  继续占满显存（本次 42.6GB）。
+- 正确做法：`ps aux | grep -E "[E]ngineCore|[V]LLM"` 两棵都确认，
+  或杀后 `nvidia-smi` + `ps` 双重验证显存归零（本次验证到 1MiB）。
+- 加重情节：本次机器上有他人项目，孤儿进程占满全卡可能影响别人。
+  **共享机器上动 GPU 前必须先 `nvidia-smi`+`ps` 确认占用方，**
+  结束后同样双验证——这条教训的代价从"浪费显存"升级成"干扰他人"。
+- nvidia-smi compute-apps 对已死进程显示滞后：以 `/proc/<pid>`
+  是否存在为准，别只看 compute-apps 列表判断死活。
