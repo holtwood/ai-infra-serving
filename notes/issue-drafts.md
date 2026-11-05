@@ -16,7 +16,15 @@ Body:
 > batch 512 warmup; nvidia-smi shows spike +12GiB over steady-state during
 > capture. Happy to upload `debug_dump_path` artifacts if useful.
 
-状态：需先在 0.11.0 上把崩现场真跑一遍再发（当前记录为「可复现候选」）。
+状态：❌ 不发（2025-11-05 核实）。#26675 已于 11-11 CLOSED，
+maintainer `heheda12345` 在 issue 内给出准确 root cause（full-graph
+capture 时 connector API 脱离 context manager、metadata 未初始化）
+并已修复。对已关闭+已定位的 issue 补"me too"复现=noise，无贡献价值。
+
+**发布核实总结**：两个候选经完整查重后全部撤回。教训清单：
+① 查上游 main 现状；② 查自己日志（警告可能早已存在）；
+③ 查 issue/PR 状态（closed 的别碰）；④ 没真复现的绝不发。
+零发布 = 正确结果，没有给账号留下负资产。
 
 ## Draft B: spec decode 被 generation_config 静默禁用 —— ❌ 已撤回（核实后）
 
