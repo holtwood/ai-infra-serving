@@ -31,6 +31,9 @@
 - ⭐ ncu 里你看哪些指标？（achieved occupancy、memory throughput、SM busy、warp stall reasons、L2 hit rate）
 - roofline 模型是什么？给一个 kernel 的 AI 和实测 GFLOPS 判断它在 ridge 哪边。
 - warp divergence、bank conflict、coalesced access 各是什么？
+- ⭐ bank conflict 具体怎么发生？shared memory 32 个 bank 怎么映射地址？stride 访问什么 pattern 会 conflict？（面试官视角原题，候选人答错率高）
+- ⭐ CUDA stream 的异步语义：同一 stream 里 kernel/memcpy 执行顺序？不同 stream 之间？event 怎么用来做依赖同步？
+- ⭐ 寄存器溢出（register spilling）会发生什么？表现在哪里（local memory、性能骤降）？怎么从 ncu 看出来？
 - kernel fusion 为什么有用？LLM 里哪些 op 通常被 fuse？（RMSNorm+quant、QKV proj、attention 全流程、silu*mul）
 
 ## M3 生产引擎（vLLM + SGLang）
@@ -46,6 +49,10 @@
 - vLLM vs SGLang vs TensorRT-LLM 定位和差异？（真题：Python 调度+Triton/CUDA kernel vs 编译固化 engine）
 - KV cache 满了会发生什么？preemption 的 recompute vs swap 两种策略？
 - 多 LoRA serving 原理？（LoRA 权重单独加载、按请求切换）
+- ⭐ "vLLM 最大的创新点是什么"？（面试官视角原题——答案不是"快"，是 PagedAttention 把 KV 显存利用率从 ~40% 拉到 ~96%）
+- ⭐ "vLLM 的调度还有什么可改进的"？（开放题，答得出 chunked prefill/priority/SLO-aware/preemption 策略任意一个方向即高分）
+- ⭐ weight-only 量化为什么只量化 weight 不量化 activation？（activation 有 outlier 通道、动态范围难校准；weight 静态可离线校准——蚂蚁/阿里都问过）
+- encoder-decoder 和 decoder-only 架构对推理引擎设计的影响？（KV cache 有无 cross-attention、T5 类模型的 serving 差异）
 
 ## M4 迷你 serving 引擎（⭐ 招牌项目）
 
@@ -67,6 +74,15 @@
 - torch profiler / nsys timeline 怎么看 kernel 间隙和 launch overhead？
 - ⭐ CUDA Graph 是什么？为什么对 decode 阶段收益大？（大量小 kernel 的 launch overhead）什么情况下不能用？（动态 shape）
 - ncu 判断一个 kernel 是 memory-bound 还是 compute-bound 的具体步骤？
+
+## 手写题（国内外都考的固定题型，建议白板练习）
+
+- ⭐ 带 KV cache 的 GQA attention forward（torch 手写，不用 SDPA）
+- ⭐ paged KV block allocator：alloc/free/共享前缀，处理碎片化
+- ⭐ continuous batching scheduler 主循环（我们 mini-serving 就是答案）
+- ⭐ top-p/top-k sampler（numpy/torch，注意数值稳定）
+- rope 的手写实现 + 为什么 position id 加在 qk 上
+- 计算图手推：attention 每一步的 tensor shape（B×H×S×D 全流程）
 
 ## Python/系统工程（贯穿，面试官随手考）
 

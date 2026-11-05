@@ -27,10 +27,13 @@
 | M0 环境与推理数学 | 3 | 装环境；推理算术（FLOPs/bytes/KV cache 公式） | 环境 + 硬件参数实测表 |
 | M1 PyTorch 手写推理 | 6 | 不用 `model.generate`，手写带 KV cache 的 decode loop；测 prefill/decode 耗时构成 | `scratch-decode/` 可运行 + 笔记 |
 | M2 Kernel 实战 | 14 | Triton 主（fused softmax/layernorm/matmul/flash-attn）+ CUDA C++ 基础（reduction/GEMM/ncu） | `kernels/` repo + benchmark 表 |
-| M3 生产引擎深挖 | 16 | vLLM 部署+全特性 ablation+V1 源码精读；SGLang 对照（RadixAttention）；llama.cpp/TRT-LLM 速览 | 引擎对比 benchmark + 架构笔记 |
-| M4 迷你 serving 引擎 | 12 | asyncio + scheduler + KV block pool + continuous batching + 流式输出，压测对照 vLLM | `mini-serving/` 项目 ⭐ |
-| M5 量化与 profiling | 8 | 量化精度/吞吐实验；nsys/torch profiler/CUDA Graph | 量化对比表 + profile 截图集 |
+| M3 生产引擎深挖 | 16 | vLLM 部署+全特性 ablation+V1 源码精读；SGLang 对照（RadixAttention）；**batch-invariance 演示**；llama.cpp/TRT-LLM 速览 | 引擎对比 benchmark + 架构笔记 |
+| M4 迷你 serving 引擎 | 12 | asyncio + scheduler + KV block pool + continuous batching + 流式输出；**扩展：双 vLLM 实例演示 P/D 分离 + prefix-aware 路由（当前最热考点，见 notes/interview-research.md）** | `mini-serving/` 项目 ⭐ |
+| M5 量化与 profiling | 8 | 量化精度/吞吐实验；nsys/torch profiler/CUDA Graph；**LMCache KV offload + ngram 投机解码** | 量化对比表 + profile 截图集 |
 | M6 面试冲刺 | 7 | 题库自测；整理 repo 与话术 | 面经笔记 + 60 秒话术 |
+| M7 差异化冲刺（机动） | 4 | ⭐ OSS PR：候选池 = 本次实验踩的 bug + **vllm-ascend 三个现成素材（W8A16 拒绝/cudagraph 流耗尽/conv1d fallback，用户另一台昇腾机的实战经验）**；popcorn 打榜；benchmark 报告发博客 | merged PR / 公开文章 |
+
+> 调研依据见 `notes/interview-research.md`：**merged PR 是转行简历的最强信号**，其次是带原始数据+复现步骤的公开 benchmark。全程把踩到的 bug 记进 `notes/debug-log.md`——既是 OSS PR 候选池，也是"你解决过什么困难问题"的面试素材。
 
 ## 三、每日节奏（约 6 天，按需压缩）
 
@@ -65,7 +68,8 @@
 2. `kernels/`：Triton + CUDA 两组 kernel，各带 benchmark 表和（CUDA 部分）ncu 分析
 3. `mini-serving/`：⭐ 迷你 LLM serving engine——asyncio 请求队列 + 调度器 + KV block pool + continuous batching + SSE 流式输出 + 压测脚本
 4. `benchmarks/`：vLLM vs SGLang vs llama.cpp 同模型 TTFT/TPOT/吞吐-并发曲线；vLLM 特性 ablation 表
-5. `notes/`：vLLM V1 架构笔记、推理数学 cheatsheet、填满答案的 interview-map.md
+5. `notes/`：vLLM V1 架构笔记、推理数学 cheatsheet、填满答案的 interview-map.md、`debug-log.md` 真实排障记录
+6. 隐藏款（面试核武器）：≥1 个 vLLM/SGLang **merged PR**、一篇带复现步骤的公开 benchmark 报告、GPU MODE 打榜记录
 
 ## 六、删减预案（时间不够时按此顺序砍）
 

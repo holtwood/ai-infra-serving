@@ -1,0 +1,7 @@
+# mini-serving 依赖（远端环境已装齐，此处仅作清单）
+torch
+transformers
+fastapi
+uvicorn
+aiohttp
+matplotlib
