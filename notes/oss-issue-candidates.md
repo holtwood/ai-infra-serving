@@ -63,10 +63,15 @@ setup 要求 `transformers>=4.55.2` 无上限 → 可提"pin <5 或兼容"。
   （graph 模式 _dummy_run → save_kv_layer → connector_metadata assert）。
   → 改为去该 issue 下补充"0.11.0 + RTX4090 复现 + enforce_eager 可绕过"
   的确认 comment，仍是有效贡献。
-- **候选 1 部分被修**：PR #31982（2026-01 合并）把"静默忽略"改成
-  "请求级校验报错"。在 0.11.0 上静默禁用仍真实存在；且衍生新角度——
-  generation_config 默认 rep_pen=1.05 会让【所有】请求触发该校验，
-  新版行为可能是"全员报错"（需新版本验证后才能定稿）。
+- **候选 1 已死稿（2025-11-05 二次核实，撤回）**：
+  - #31982 只覆盖 min_tokens/min_p/logit_bias；但 main 上
+    `is_spec_decode_unsupported`/`spec_decode_unsupported_reqs`
+    已整体移除（gh search code 零命中）——penalties 由 #19482 的
+    rejection-sampler logit processors 支持，静默跳过路径不复存在。
+  - "无任何 WARNING"的指控不成立：`logs/vllm_7b_spec.log` 启动期即有
+    `WARNING ... generation config ... overridden` + 参数表打印。
+  - 结论：发出去=重复+事实错误。保留为面试 debug 叙事（过程真实），
+    教训：**发 issue 前必须核实三点——上游 main 现状、自己日志、已有 PR**。
 - vllm-ascend#10245 是同类 dummy-batch 污染 connector 的先例，
   可作引用。
 
