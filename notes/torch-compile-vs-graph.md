@@ -14,3 +14,7 @@ fused kernel）**免费拿到手写图 ~60% 的收益**，但 guard 检查 +
 Python 残留让间隙仍有 48%；手写图对 KV 指针/分桶控制更细，
 再快 1.5x。面试口径：「框架图是 1 行代码的 60% 答案，
 剩下 40% 在自定义内存布局上」。
+
+> **Caveat**：compile/eager 测于 DynamicCache 左 pad 引擎，
+> 手写 graph 5.46ms 测于 StaticCache 定长引擎（max_len=256）——
+> 不同 cache 布局，只作量级对比。

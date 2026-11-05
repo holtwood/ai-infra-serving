@@ -108,3 +108,9 @@ P/D demo 本体跑通：producer 把 ~1200tok KV 序列化到
   结束后同样双验证——这条教训的代价从"浪费显存"升级成"干扰他人"。
 - nvidia-smi compute-apps 对已死进程显示滞后：以 `/proc/<pid>`
   是否存在为准，别只看 compute-apps 列表判断死活。
+
+## 2026-11-06 pgrep -f EngineCore 全机杀（协议违规自查）
+- T4 清理时用了 `kill -9 $(pgrep -f EngineCore)`：共享机器上这会
+  杀掉**所有用户**的 EngineCore，不只我方清单内进程——违反自己
+  定的 runbook 第 0 节。正确：只 `pgrep -P <清单pid>` 取子进程树。
+  本次无人受害纯属运气；记录防再犯。

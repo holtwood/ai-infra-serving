@@ -38,6 +38,19 @@
 | +手写 CUDA graph（max_len 256） | decode 步 13.75→**5.46ms（2.5x）** | 但 max_len 2048 时 17.8ms 变慢 |
 | vs vLLM 差 | — | 剩余差距=PagedAttention 变长寻址（定长图的天花板） |
 
+## 通宵补测（2025-11-06，详见 notes/overnight-report.md）
+
+T1 分叉根因：确认 bf16 batch-invariance（非 position bug）
+T2 torch.compile：eager 13.75 → compile 8.37 → 手写graph 5.46ms/step
+  （caveat：compile 在 DynamicCache 引擎、手写graph 在 StaticCache
+   定长引擎，跨布局只比量级）
+T3 AWQ-32B：PPL 11.75 < 7B-bf16 15.56；conc32=631tok/s,ITL~50ms
+T4 ngram spec：FAIL——draft 零触发，假设待查
+T5 KV swap 微基准：PCIe ~24GiB/s，8k ctx 往返 36.7ms
+  vs recompute ~500ms ≈14x
+paged-attn kernel：ctx64 按表取块 53us vs 定长扫512 196us（3.7x，
+  三变量混杂，方向性结论）
+
 ## Kernels（Triton/CUDA，全部带 bottleneck→fix→数字）
 
 fused softmax 942GB/s｜RMSNorm 3-7x｜matmul 160TF 超 cuBLAS｜
