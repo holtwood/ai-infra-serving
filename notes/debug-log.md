@@ -37,3 +37,39 @@
 - W8A16 量化路径被拒绝/不支持 → 整理英文 issue 提 vllm-ascend
 - cudagraph 模式下 stream 耗尽/重复 capture → 整理成 issue，可能升级 PR
 - conv1d fallback 到 CPU/慢路径 → issue + 可能的 kernel 补齐 PR
+
+## 2026-11-05 vllm 0.11.0：ngram 投机解码被 generation_config 静默禁用 ⭐OSS issue 候选
+
+**现象**：`--speculative-config '{"method":"ngram","num_speculative_tokens":5,...}'`
+启动正常（drafter 加载成功），但 `/metrics` 中
+`spec_decode_num_drafts_total` / `num_accepted_tokens_total` 恒为 0，
+TPOT 与基线无差——整个 spec decode 静默空转。
+
+**根因链**：
+1. Qwen2.5-7B-Instruct 的 `generation_config.json` 带 `repetition_penalty: 1.05`
+2. vLLM `generation_config="auto"` 默认把模型默认采样参数套用到所有请求
+3. `vllm/v1/spec_decode/utils.py::is_spec_decode_unsupported()` 规定
+   `repetition_penalty != 1.0` 的请求不支持 spec decode
+4. → 全部请求进 `spec_decode_unsupported_reqs`，proposer 跳过
+5. **日志/metrics 无任何"spec decode 被采样参数禁用"的提示**
+
+**验证**：客户端显式 `repetition_penalty: 1.0` 后 drafts=30、
+accepted=129（接受长度 ~4.3/5），重复性输出 e2e 0.88s→0.22s（4x）。
+
+**Issue 素材**：建议 vLLM 在 spec_decode_unsupported_reqs 非空时打
+WARNING（"spec decode disabled for request X due to sampling params"），
+或在 generation_config 读取处提示默认采样参数与 spec decode 冲突。
+同类受害者：所有 generation_config 带 repetition_penalty/min_p 的模型。
+
+## 2026-11-05 容器镜像 libcuda compat 遮蔽真实驱动（Error 804）
+- 现象：torch.cuda.is_available()=False，Error 804 forward compat
+- 根因：/etc/ld.so.conf.d/00-compat-*.conf 让 ldconfig 优先命中
+  /usr/local/cuda-12.8/compat/libcuda.so.570 而非真实驱动 550
+- 修复：重命名 conf + ldconfig → libcuda.so.1 解析回 x86_64-linux-gnu 版
+- 同类问题：ncu 报 ERR_NVGPUCTRPERM（宿主机 RmProfilingAdminOnly=1，
+  容器内无解 → 用 events+ptxas+compute-sanitizer 替代）
+
+## 2026-11-05 vllm 0.11.0 + transformers 5.x 崩
+- `Qwen2Tokenizer has no attribute all_special_tokens_extended`
+- transformers 5.22.1 移除了该属性 → 锁 transformers==4.56.2
+- （vllm 0.11.0 setup 要求 transformers>=4.55.2 但未卡上限 → 可提 issue）
