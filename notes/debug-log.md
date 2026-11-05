@@ -73,3 +73,26 @@ WARNING（"spec decode disabled for request X due to sampling params"），
 - `Qwen2Tokenizer has no attribute all_special_tokens_extended`
 - transformers 5.22.1 移除了该属性 → 锁 transformers==4.56.2
 - （vllm 0.11.0 setup 要求 transformers>=4.55.2 但未卡上限 → 可提 issue）
+
+## 2026-11-05 vllm 0.11.0：SharedStorageConnector + cudagraph 预热崩 ⭐bug 候选#2
+
+**现象**：`kv_connector=SharedStorageConnector` + 默认 cudagraph →
+EngineCore 启动即崩 `AssertionError`。
+**根因**：`compile_or_warm_up_model` 的 `_dummy_run` 触发
+`attention/layer.py::maybe_save_kv_layer_to_connector` →
+`save_kv_layer` 要求 `_connector_metadata` 非空，但 dummy run
+没有 scheduler 下发的 metadata → `assert self._connector_metadata is not None` 炸。
+**绕过**：`enforce_eager=True`（跳过 cudagraph warmup 路径）。
+**修法建议**：connector save hook 应在 `is_dummy_run/forward_context`
+无 metadata 时直接 return，而非 assert。
+P/D demo 本体跑通：producer 把 ~1200tok KV 序列化到
+/data/ai-learn/kv_share（16MB），consumer 免 prefill decode；
+0.5B 小模型上 传输成本≈重算成本（热 0.32s vs 冷 0.29s），
+印证"PD 只对大模型/长上下文/高带宽互联划算"的行业口径。
+
+## 2026-11-05 SGLang 部署失败（依赖链问题，非我方 bug）
+- sglang[all]==0.5.4 → 依赖 flashinfer-python==0.4.1 →
+  要求 apache-tvm-ffi==0.1.0b15，该 beta 未在任何 index 发布
+- sglang==0.5.3.post1 → 硬钉 transformers==4.57.0，该版本已被
+  PyPI yanked（setup 出错）→ 无解
+- 结论：本机无法部署，按预案完成 RadixAttention 源码精读笔记
