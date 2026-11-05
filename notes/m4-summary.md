@@ -76,3 +76,12 @@ HF 模型非最优 kernel——正好对应下一次迭代的四个优化点。
 greedy 对比——3 条逐 token IDENTICAL，1 条在第 17 token 分叉
 （bf16 数值差异，pad 位参与计算的浮点序不同）——顺带实测了
 "batch-invariance 为什么难"这个热门话题。
+
+## 七、续2：手写 CUDA Graph（engine_graph.py，2025-11-05）
+
+decode 步录图回放：max_len=256 时 13.75→**5.46ms/step（2.5x）**，
+消灭 profiler 实测的 69% Python/launch 空转。
+但定长图强制 attention 全扫 max_len → max_len=2048 时反变慢 1.3x，
+**亲手撞出了 PagedAttention 变长寻址的存在理由**。
+坑见 notes/cuda-graph-engine.md（StaticCache batch 锁定、
+共享 cache_position 逼右对齐、两个 off-by-one）。

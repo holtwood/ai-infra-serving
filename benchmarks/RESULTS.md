@@ -35,7 +35,8 @@
 |---|---|---|
 | per-seq forward | 13→202ms 线性退化 | 79 tok/s 封顶 |
 | batched forward | 13→26ms 几乎平 | **973.6 tok/s（12.3x）** |
-| vs vLLM 差 | — | 973 vs 2762：pad KV 浪费+无 graph+逐 seq prefill |
+| +手写 CUDA graph（max_len 256） | decode 步 13.75→**5.46ms（2.5x）** | 但 max_len 2048 时 17.8ms 变慢 |
+| vs vLLM 差 | — | 剩余差距=PagedAttention 变长寻址（定长图的天花板） |
 
 ## Kernels（Triton/CUDA，全部带 bottleneck→fix→数字）
 

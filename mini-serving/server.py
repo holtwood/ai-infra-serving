@@ -27,7 +27,7 @@ from engine import EngineCore, Request, ReqStatus
 MODEL_PATH = os.environ.get("MINI_MODEL", "/data/ai-learn/models/Qwen2.5-0.5B-Instruct")
 DEVICE = os.environ.get("MINI_DEVICE", "cuda")
 KV_BLOCKS = int(os.environ.get("MINI_KV_BLOCKS", "256"))  # 256×16=4096 token 容量
-ENGINE_KIND = os.environ.get("MINI_ENGINE", "perseq")     # perseq | batched
+ENGINE_KIND = os.environ.get("MINI_ENGINE", "perseq")     # perseq | batched | graph
 
 engine: EngineCore          # lifespan 里初始化
 tokenizer = None
@@ -58,7 +58,11 @@ async def engine_loop() -> None:
 async def lifespan(_: FastAPI):
     global engine, tokenizer, _wakeup
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-    if ENGINE_KIND == "batched":
+    if ENGINE_KIND == "graph":
+        from engine_graph import EngineCoreGraph
+        engine = EngineCoreGraph(MODEL_PATH, DEVICE, num_kv_blocks=KV_BLOCKS,
+                                 max_len=int(os.environ.get("MINI_MAX_LEN", "512")))
+    elif ENGINE_KIND == "batched":
         from engine_batched import EngineCoreBatched
         engine = EngineCoreBatched(MODEL_PATH, DEVICE, num_kv_blocks=KV_BLOCKS)
     else:
