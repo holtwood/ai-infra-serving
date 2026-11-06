@@ -114,3 +114,11 @@ P/D demo 本体跑通：producer 把 ~1200tok KV 序列化到
   杀掉**所有用户**的 EngineCore，不只我方清单内进程——违反自己
   定的 runbook 第 0 节。正确：只 `pgrep -P <清单pid>` 取子进程树。
   本次无人受害纯属运气；记录防再犯。
+
+## 2026-11-06 孙子进程孤儿 + cwd 辨认法（险些误杀他人）
+- vllm 进程树是三层：nohup shell → vllm serve(API) → EngineCore。
+  `pgrep -P` 只抓一层会漏 EngineCore 孙子。本次它孤儿占 42.7GB。
+- 辨认归属：`readlink /proc/<pid>/cwd`——我方 /data/ai-learn，
+  他方 /root（本次实锤他方 EngineCore 318409 正在跑）。
+- 规则升级：**绝不用 pgrep -f 模式杀进程**；逐 pid 查 cwd 归属
+  后只杀清单+cwd 匹配的。这次验证了共享机器上模式杀必出事。
